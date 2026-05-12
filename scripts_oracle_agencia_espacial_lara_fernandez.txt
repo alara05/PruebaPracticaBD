@@ -1,0 +1,574 @@
+/* ============================================================
+   PRUEBA PRÁCTICA AVANZADA - ORACLE SQL
+   Estudiante: Lara Fernández Andrew Johan
+   Escenario: Agencia Espacial
+   Integridad: CASCADE
+   ============================================================ */
+
+
+/* ============================================================
+   SCRIPT 00 - LIMPIEZA DE TABLAS
+   Ejecutar solo si se desea volver a correr todo desde cero.
+   ============================================================ */
+
+DROP TABLE TRIPULACION CASCADE CONSTRAINTS;
+DROP TABLE MISION CASCADE CONSTRAINTS;
+DROP TABLE ASTRONAUTA CASCADE CONSTRAINTS;
+DROP TABLE ROL_TRIPULACION CASCADE CONSTRAINTS;
+DROP TABLE NAVE CASCADE CONSTRAINTS;
+
+
+/* ============================================================
+   SCRIPT 01 - CREATE TABLE
+   Modelado y DDL
+   ============================================================ */
+
+
+/* =========================
+   TABLA: NAVE
+   ========================= */
+
+CREATE TABLE NAVE (
+    id_nave        NUMBER,
+    nombre_nave    VARCHAR2(100) NOT NULL,
+    modelo         VARCHAR2(100) NOT NULL,
+    capacidad      NUMBER NOT NULL,
+    estado         VARCHAR2(20) NOT NULL,
+
+    CONSTRAINT pk_nave PRIMARY KEY (id_nave),
+    CONSTRAINT uq_nave_nombre UNIQUE (nombre_nave),
+    CONSTRAINT chk_nave_capacidad CHECK (capacidad > 0),
+    CONSTRAINT chk_nave_estado CHECK (
+        estado IN ('ACTIVA', 'MANTENIMIENTO', 'RETIRADA')
+    )
+);
+
+
+/* =========================
+   TABLA: MISION
+   ========================= */
+
+CREATE TABLE MISION (
+    id_mision       NUMBER,
+    nombre_mision   VARCHAR2(100) NOT NULL,
+    fecha_inicio    DATE NOT NULL,
+    fecha_fin       DATE,
+    objetivo        VARCHAR2(200) NOT NULL,
+    id_nave         NUMBER NOT NULL,
+
+    CONSTRAINT pk_mision PRIMARY KEY (id_mision),
+    CONSTRAINT uq_mision_nombre UNIQUE (nombre_mision),
+
+    CONSTRAINT fk_mision_nave FOREIGN KEY (id_nave)
+        REFERENCES NAVE(id_nave),
+
+    CONSTRAINT chk_mision_fechas CHECK (
+        fecha_fin IS NULL OR fecha_fin >= fecha_inicio
+    )
+);
+
+
+/* =========================
+   TABLA: ASTRONAUTA
+   ========================= */
+
+CREATE TABLE ASTRONAUTA (
+    id_astronauta   NUMBER,
+    cedula          VARCHAR2(10) NOT NULL,
+    nombre          VARCHAR2(50) NOT NULL,
+    apellido        VARCHAR2(50) NOT NULL,
+    especialidad    VARCHAR2(100) NOT NULL,
+    edad            NUMBER NOT NULL,
+
+    CONSTRAINT pk_astronauta PRIMARY KEY (id_astronauta),
+    CONSTRAINT uq_astronauta_cedula UNIQUE (cedula),
+    CONSTRAINT chk_astronauta_edad CHECK (edad BETWEEN 25 AND 65)
+);
+
+
+/* =========================
+   TABLA: ROL_TRIPULACION
+   ========================= */
+
+CREATE TABLE ROL_TRIPULACION (
+    id_rol       NUMBER,
+    nombre_rol   VARCHAR2(50) NOT NULL,
+    descripcion  VARCHAR2(200),
+
+    CONSTRAINT pk_rol_tripulacion PRIMARY KEY (id_rol),
+    CONSTRAINT uq_rol_nombre UNIQUE (nombre_rol)
+);
+
+
+/* =========================
+   TABLA: TRIPULACION
+   ========================= */
+
+CREATE TABLE TRIPULACION (
+    id_tripulacion      NUMBER,
+    id_mision           NUMBER NOT NULL,
+    id_astronauta       NUMBER NOT NULL,
+    id_rol              NUMBER NOT NULL,
+    fecha_asignacion    DATE NOT NULL,
+    estado_asignacion   VARCHAR2(20) NOT NULL,
+
+    CONSTRAINT pk_tripulacion PRIMARY KEY (id_tripulacion),
+
+    CONSTRAINT fk_tripulacion_mision FOREIGN KEY (id_mision)
+        REFERENCES MISION(id_mision)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_tripulacion_astronauta FOREIGN KEY (id_astronauta)
+        REFERENCES ASTRONAUTA(id_astronauta)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_tripulacion_rol FOREIGN KEY (id_rol)
+        REFERENCES ROL_TRIPULACION(id_rol),
+
+    CONSTRAINT chk_tripulacion_estado CHECK (
+        estado_asignacion IN ('ACTIVO', 'FINALIZADO', 'SUSPENDIDO')
+    )
+);
+
+
+/* ============================================================
+   SCRIPT 02 - INSERTS VALIDOS
+   DML e Integridad
+   ============================================================ */
+
+
+/* =========================
+   INSERTS EN NAVE
+   ========================= */
+
+INSERT INTO NAVE VALUES (
+    1,
+    'Apolo Andina',
+    'AX-100',
+    6,
+    'ACTIVA'
+);
+
+INSERT INTO NAVE VALUES (
+    2,
+    'Condor Espacial',
+    'CE-200',
+    4,
+    'MANTENIMIENTO'
+);
+
+INSERT INTO NAVE VALUES (
+    3,
+    'Quinde Orbital',
+    'QO-300',
+    8,
+    'ACTIVA'
+);
+
+
+/* =========================
+   INSERTS EN MISION
+   ========================= */
+
+INSERT INTO MISION VALUES (
+    1,
+    'Exploracion Lunar',
+    TO_DATE('2026-05-01', 'YYYY-MM-DD'),
+    TO_DATE('2026-05-20', 'YYYY-MM-DD'),
+    'Recolectar muestras de la superficie lunar',
+    1
+);
+
+INSERT INTO MISION VALUES (
+    2,
+    'Orbita Andina',
+    TO_DATE('2026-06-10', 'YYYY-MM-DD'),
+    TO_DATE('2026-06-30', 'YYYY-MM-DD'),
+    'Monitorear satelites de comunicacion',
+    3
+);
+
+INSERT INTO MISION VALUES (
+    3,
+    'Marte Inicial',
+    TO_DATE('2026-07-15', 'YYYY-MM-DD'),
+    NULL,
+    'Preparar analisis preliminar para exploracion marciana',
+    1
+);
+
+
+/* =========================
+   INSERTS EN ASTRONAUTA
+   ========================= */
+
+INSERT INTO ASTRONAUTA VALUES (
+    1,
+    '1804567890',
+    'Andrew',
+    'Lara',
+    'Ingenieria Aeroespacial',
+    28
+);
+
+INSERT INTO ASTRONAUTA VALUES (
+    2,
+    '1805678901',
+    'Carlos',
+    'Fernandez',
+    'Comunicaciones Espaciales',
+    35
+);
+
+INSERT INTO ASTRONAUTA VALUES (
+    3,
+    '1806789012',
+    'Daniela',
+    'Molina',
+    'Medicina Espacial',
+    32
+);
+
+
+/* =========================
+   INSERTS EN ROL_TRIPULACION
+   ========================= */
+
+INSERT INTO ROL_TRIPULACION VALUES (
+    1,
+    'Comandante',
+    'Responsable principal de dirigir la mision'
+);
+
+INSERT INTO ROL_TRIPULACION VALUES (
+    2,
+    'Piloto',
+    'Encargado de operar la nave espacial'
+);
+
+INSERT INTO ROL_TRIPULACION VALUES (
+    3,
+    'Especialista',
+    'Encargado de tareas tecnicas y cientificas'
+);
+
+
+/* =========================
+   INSERTS EN TRIPULACION
+   ========================= */
+
+INSERT INTO TRIPULACION VALUES (
+    1,
+    1,
+    1,
+    1,
+    TO_DATE('2026-04-25', 'YYYY-MM-DD'),
+    'ACTIVO'
+);
+
+INSERT INTO TRIPULACION VALUES (
+    2,
+    1,
+    2,
+    2,
+    TO_DATE('2026-04-25', 'YYYY-MM-DD'),
+    'ACTIVO'
+);
+
+INSERT INTO TRIPULACION VALUES (
+    3,
+    2,
+    3,
+    3,
+    TO_DATE('2026-06-01', 'YYYY-MM-DD'),
+    'ACTIVO'
+);
+
+COMMIT;
+
+
+/* ============================================================
+   SCRIPT 03 - PROVOCAR ERROR ORA-02291
+   Este bloque debe ejecutarse despues de los inserts validos.
+   ============================================================ */
+
+/*
+   Este INSERT genera ORA-02291 porque id_nave = 99
+   no existe en la tabla padre NAVE.
+*/
+
+INSERT INTO MISION VALUES (
+    4,
+    'Mision Fallida',
+    TO_DATE('2026-08-01', 'YYYY-MM-DD'),
+    TO_DATE('2026-08-15', 'YYYY-MM-DD'),
+    'Intento de registrar una mision con nave inexistente',
+    99
+);
+
+/*
+   Resultado esperado:
+
+   ORA-02291: restriccion de integridad violada -
+   clave principal no encontrada
+*/
+
+
+/* ============================================================
+   SCRIPT 04 - UPDATE SEGURO
+   Se usa WHERE para modificar solo un registro.
+   ============================================================ */
+
+UPDATE MISION
+SET fecha_fin = TO_DATE('2026-07-30', 'YYYY-MM-DD')
+WHERE id_mision = 3;
+
+COMMIT;
+
+
+/* Verificacion del UPDATE */
+
+SELECT 
+    id_mision,
+    nombre_mision,
+    fecha_inicio,
+    fecha_fin,
+    objetivo
+FROM MISION
+WHERE id_mision = 3;
+
+
+/* Otro ejemplo de UPDATE seguro */
+
+UPDATE TRIPULACION
+SET estado_asignacion = 'FINALIZADO'
+WHERE id_tripulacion = 3;
+
+COMMIT;
+
+
+/* Verificacion del segundo UPDATE */
+
+SELECT 
+    id_tripulacion,
+    id_mision,
+    id_astronauta,
+    id_rol,
+    fecha_asignacion,
+    estado_asignacion
+FROM TRIPULACION
+WHERE id_tripulacion = 3;
+
+
+/* ============================================================
+   SCRIPT 05 - DELETE CON INTEGRIDAD REFERENCIAL CASCADE
+   Se elimina una mision y se borran sus registros hijos.
+   ============================================================ */
+
+
+/* Verificar tripulacion relacionada con la mision 1 */
+
+SELECT 
+    id_tripulacion,
+    id_mision,
+    id_astronauta,
+    id_rol,
+    fecha_asignacion,
+    estado_asignacion
+FROM TRIPULACION
+WHERE id_mision = 1;
+
+
+/* DELETE seguro con WHERE */
+
+DELETE FROM MISION
+WHERE id_mision = 1;
+
+COMMIT;
+
+
+/* Verificar que la mision fue eliminada */
+
+SELECT 
+    id_mision,
+    nombre_mision,
+    fecha_inicio,
+    fecha_fin,
+    objetivo,
+    id_nave
+FROM MISION
+WHERE id_mision = 1;
+
+
+/* Verificar que la tripulacion relacionada tambien fue eliminada */
+
+SELECT 
+    id_tripulacion,
+    id_mision,
+    id_astronauta,
+    id_rol,
+    fecha_asignacion,
+    estado_asignacion
+FROM TRIPULACION
+WHERE id_mision = 1;
+
+
+/* ============================================================
+   SCRIPT 06 - CONSULTAS SQL
+   IN, LIKE, BETWEEN, AVG, MAX y JOIN
+   ============================================================ */
+
+
+/* =========================
+   CONSULTA CON IN
+   Misiones asociadas a las naves 1 o 3
+   ========================= */
+
+SELECT 
+    id_mision,
+    nombre_mision,
+    fecha_inicio,
+    fecha_fin,
+    objetivo,
+    id_nave
+FROM MISION
+WHERE id_nave IN (1, 3);
+
+
+/* =========================
+   CONSULTA CON LIKE
+   Astronautas con especialidad que contenga Espacial
+   ========================= */
+
+SELECT 
+    id_astronauta,
+    cedula,
+    nombre,
+    apellido,
+    especialidad,
+    edad
+FROM ASTRONAUTA
+WHERE especialidad LIKE '%Espacial%';
+
+
+/* =========================
+   CONSULTA CON BETWEEN
+   Astronautas con edad entre 30 y 40
+   ========================= */
+
+SELECT 
+    id_astronauta,
+    cedula,
+    nombre,
+    apellido,
+    especialidad,
+    edad
+FROM ASTRONAUTA
+WHERE edad BETWEEN 30 AND 40;
+
+
+/* =========================
+   CONSULTA CON AVG
+   Edad promedio de los astronautas
+   ========================= */
+
+SELECT 
+    AVG(edad) AS edad_promedio
+FROM ASTRONAUTA;
+
+
+/* =========================
+   CONSULTA CON MAX
+   Capacidad maxima de las naves
+   ========================= */
+
+SELECT 
+    MAX(capacidad) AS capacidad_maxima
+FROM NAVE;
+
+
+/* =========================
+   CONSULTA CON JOIN
+   Tripulacion completa de cada mision
+   ========================= */
+
+SELECT 
+    m.nombre_mision,
+    n.nombre_nave,
+    a.nombre || ' ' || a.apellido AS astronauta,
+    r.nombre_rol,
+    t.fecha_asignacion,
+    t.estado_asignacion
+FROM TRIPULACION t
+JOIN MISION m 
+    ON t.id_mision = m.id_mision
+JOIN NAVE n 
+    ON m.id_nave = n.id_nave
+JOIN ASTRONAUTA a 
+    ON t.id_astronauta = a.id_astronauta
+JOIN ROL_TRIPULACION r 
+    ON t.id_rol = r.id_rol;
+
+
+/* ============================================================
+   SCRIPT 07 - EJEMPLO DE ATOMICIDAD
+   COMMIT y ROLLBACK
+   ============================================================ */
+
+/*
+   La atomicidad indica que una transaccion debe completarse
+   totalmente o no ejecutarse.
+   Si todo sale bien se usa COMMIT.
+   Si ocurre un error se usa ROLLBACK.
+*/
+
+
+/* Ejemplo de transaccion correcta */
+
+INSERT INTO MISION VALUES (
+    5,
+    'Mision Experimental',
+    TO_DATE('2026-09-01', 'YYYY-MM-DD'),
+    TO_DATE('2026-09-20', 'YYYY-MM-DD'),
+    'Prueba de sistemas orbitales',
+    3
+);
+
+INSERT INTO TRIPULACION VALUES (
+    5,
+    5,
+    1,
+    1,
+    TO_DATE('2026-08-25', 'YYYY-MM-DD'),
+    'ACTIVO'
+);
+
+COMMIT;
+
+
+/* Ejemplo de ROLLBACK */
+
+INSERT INTO MISION VALUES (
+    6,
+    'Mision Temporal',
+    TO_DATE('2026-10-01', 'YYYY-MM-DD'),
+    TO_DATE('2026-10-10', 'YYYY-MM-DD'),
+    'Registro temporal para demostrar rollback',
+    3
+);
+
+ROLLBACK;
+
+
+/* Verificar que la mision temporal no quedo guardada */
+
+SELECT 
+    id_mision,
+    nombre_mision
+FROM MISION
+WHERE id_mision = 6;
+
+
+/* ============================================================
+   FIN DEL SCRIPT
+   ============================================================ */
